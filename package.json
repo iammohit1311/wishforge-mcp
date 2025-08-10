@@ -1,0 +1,30 @@
+{
+  "name": "WishForge MCP",
+  "version": "0.1.0",
+  "description": "Generate viral wishes, shayari, and status packs in Indic languages using MCP sampling",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "WishForge MCP": "./build/index.js"
+  },
+  "files": [
+    "build"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
+    "start:stdio": "cross-env MCP_STDIO=1 node build/index.js",
+    "start:http": "node build/http.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "0.6.0",
+    "mcp-proxy": "^5.5.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3",
+    "cross-env": "^7.0.3"
+  }
+}
