@@ -93,7 +93,8 @@ export function createWishForgeServer(): Server {
               properties: {
                 bearerToken: { type: "string", description: "Bearer token to validate" }
               },
-              required: ["bearerToken"]
+              // required: ["bearerToken"]
+              required: []
             }
           },
         {
@@ -222,10 +223,10 @@ export function createWishForgeServer(): Server {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
       case "validate": {
-        const bearerToken = String(request.params.arguments?.bearerToken || "").trim();
-        if (!bearerToken) {
-          throw new Error("bearerToken is required");
-        }
+        // const bearerToken = String(request.params.arguments?.bearerToken || "").trim();
+        // if (!bearerToken) {
+        //   throw new Error("bearerToken is required");
+        // }
         const phoneNumber = process.env.OWNER_PHONE || "919998881729";
         return { content: [{ type: "text", text: phoneNumber }] };
       }
