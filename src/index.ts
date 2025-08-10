@@ -83,14 +83,19 @@ export function createWishForgeServer(): Server {
         {
           name: "validate",
           description: "Validate a bearer token and return the owner phone number as {country_code}{number} (e.g., 919876543210)",
-          inputSchema: {
-            type: "object",
-            properties: {
-              bearerToken: { type: "string", description: "Bearer token to validate" }
-            },
-            required: ["bearerToken"]
-          }
-        },
+          params: {
+            "name": "validate",
+            "arguments": {
+              "bearerToken": process.env.AUTH_TOKEN
+            }},
+            inputSchema: {
+              type: "object",
+              properties: {
+                bearerToken: { type: "string", description: "Bearer token to validate" }
+              },
+              required: ["bearerToken"]
+            }
+          },
         {
           name: "create_note",
           description: "Create a new note",
@@ -251,7 +256,7 @@ export function createWishForgeServer(): Server {
         const personal = name ? `${name}, ` : "";
 
         // Try LLM
-        const ask = `Generate exactly ${variantCount} one-liner ${language} wishes for ${occasion}. Tone=${tone}. Length=${length}. ${name ? `Personalize for ${name}.` : ""} Use ${emojiLevel===0?"no":emojiLevel===1?"some":"lots of"} emojis. Output as a numbered list 1..${variantCount} with no commentary.`;
+        const ask = `Generate exactly ${variantCount} one-liner ${language} wishes for ${occasion}. Tone=${tone}. Length=${length}. ${name ? `Personalize for ${name}.` : ""} Use ${emojiLevel === 0 ? "no" : emojiLevel === 1 ? "some" : "lots of"} emojis. Output as a numbered list 1..${variantCount} with no commentary.`;
         const llm = await generateWithLLM(ask);
         if (llm) {
           return { content: [{ type: "text", text: llm.trim() }] };
@@ -282,7 +287,7 @@ export function createWishForgeServer(): Server {
           const core = length === "short" ? shortCore : mediumCore;
           const toneTag = tone === "funny" ? (language === "Hinglish" ? "Thoda masti, thoda pyaar!" : "थोड़ी मस्ती, थोड़ा प्यार!")
             : tone === "formal" ? (language === "Hinglish" ? "Best wishes and regards." : "शुभकामनाएँ एवं सादर।")
-            : (language === "Hinglish" ? "Dil se blessings!" : "दिल से दुआएँ!");
+              : (language === "Hinglish" ? "Dil se blessings!" : "दिल से दुआएँ!");
           return join([core, end, toneTag, em.join(" ")]);
         };
         const variants: string[] = [];
