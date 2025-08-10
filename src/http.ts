@@ -12,6 +12,15 @@ async function main() {
     streamEndpoint: "/mcp",
     stateless: true,
     onUnhandledRequest: async (req, res) => {
+
+        if (req.method === "GET" && req.url === "/mcp") {
+        const phoneNumber = process.env.OWNER_PHONE || "917977355318";
+        res.statusCode = 200;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ phoneNumber }));
+        return;
+      }
+
       if (req.method === "GET" && (req.url === "/" || req.url === "/healthz")) {
         res.statusCode = 200;
         res.setHeader("content-type", "text/plain");
