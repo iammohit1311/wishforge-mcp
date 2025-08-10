@@ -8,7 +8,7 @@ async function main() {
     createServer: async () => createWishForgeServer(),
     eventStore: new InMemoryEventStore(),
     port,
-    sseEndpoint: null,
+    sseEndpoint: "/sse",
     streamEndpoint: "/mcp",
     stateless: true,
     onUnhandledRequest: async (req, res) => {
