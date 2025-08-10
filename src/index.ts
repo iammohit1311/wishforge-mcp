@@ -159,6 +159,60 @@ export function createWishForgeServer(): Server {
     .replaceAll("दिल", "dil").replaceAll("रात", "raat").replaceAll("दुआएँ", "duaayein")
     .replaceAll("खुश", "khush").replaceAll("तेरी", "teri").replaceAll("यादें", "yaadein");
 
+  async function callGroqChat(prompt: string): Promise<string | null> {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) return null;
+    const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
+    const body = {
+      model,
+      messages: [
+        { role: "system", content: "You are a concise Indian copywriter. Return only the requested list without extra commentary." },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 400,
+    } as any;
+    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) return null;
+    const json: any = await resp.json();
+    const text = json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content;
+    return typeof text === "string" ? text : null;
+  }
+
+  async function callHuggingFace(prompt: string): Promise<string | null> {
+    const apiKey = process.env.HF_API_TOKEN;
+    if (!apiKey) return null;
+    const model = process.env.HF_MODEL || "meta-llama/Meta-Llama-3-8B-Instruct";
+    const resp = await fetch(`https://api-inference.huggingface.co/models/${encodeURIComponent(model)}`, {
+      method: "POST",
+      headers: {
+        "authorization": `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ inputs: prompt, parameters: { max_new_tokens: 400, temperature: 0.7 } }),
+    });
+    if (!resp.ok) return null;
+    const json: any = await resp.json();
+    const text = Array.isArray(json) ? json[0]?.generated_text : json?.generated_text;
+    return typeof text === "string" ? text : null;
+  }
+
+  async function generateWithLLM(prompt: string): Promise<string | null> {
+    // Try Groq first, then HF
+    const g = await callGroqChat(prompt).catch(() => null);
+    if (g) return g;
+    const h = await callHuggingFace(prompt).catch(() => null);
+    if (h) return h;
+    return null;
+  }
+
   // Tools handlers
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
@@ -192,10 +246,18 @@ export function createWishForgeServer(): Server {
         const length = String(request.params.arguments?.length || "short");
         if (!occasion) throw new Error("occasion is required");
 
-        const baseEmojis = ["🎉", "✨", "🎊", "🌟", "💫"]; // picked for celebration
+        const baseEmojis = ["🎉", "✨", "🎊", "🌟", "💫"];
         const em = pickEmojis(emojiLevel, baseEmojis);
         const personal = name ? `${name}, ` : "";
 
+        // Try LLM
+        const ask = `Generate exactly ${variantCount} one-liner ${language} wishes for ${occasion}. Tone=${tone}. Length=${length}. ${name ? `Personalize for ${name}.` : ""} Use ${emojiLevel===0?"no":emojiLevel===1?"some":"lots of"} emojis. Output as a numbered list 1..${variantCount} with no commentary.`;
+        const llm = await generateWithLLM(ask);
+        if (llm) {
+          return { content: [{ type: "text", text: llm.trim() }] };
+        }
+
+        // Fallback templated
         const hooks: Record<string, string[]> = {
           Hinglish: [
             "Bas khushiyan hi khushiyan!",
@@ -209,7 +271,6 @@ export function createWishForgeServer(): Server {
           ]
         };
         const endings = hooks[language as keyof typeof hooks] || hooks.Hinglish;
-
         const mk = (i: number) => {
           const end = endings[i % endings.length];
           const shortCore = language === "Hinglish"
@@ -224,7 +285,6 @@ export function createWishForgeServer(): Server {
             : (language === "Hinglish" ? "Dil se blessings!" : "दिल से दुआएँ!");
           return join([core, end, toneTag, em.join(" ")]);
         };
-
         const variants: string[] = [];
         for (let i = 0; i < variantCount; i++) variants.push(mk(i));
         const text = variants.map((v, i) => `${i + 1}. ${v}`).join("\n");
@@ -238,6 +298,13 @@ export function createWishForgeServer(): Server {
         const script = String(request.params.arguments?.script || "devanagari");
         if (!theme) throw new Error("theme is required");
 
+        const ask = `Write exactly ${variantCount} ${language} shayari on "${theme}". Each 2-4 lines, rhyming, emotional. If script=${script}, write in that script. Return as a numbered list, with each item being the shayari block with newlines.`;
+        const llm = await generateWithLLM(ask);
+        if (llm) {
+          return { content: [{ type: "text", text: llm.trim() }] };
+        }
+
+        // Fallback
         const makeOne = (i: number) => {
           const lines = [
             `दिल की राहों में तेरी यादें बसी हैं`,
@@ -260,9 +327,15 @@ export function createWishForgeServer(): Server {
         const style = String(request.params.arguments?.style || "emoji-heavy");
         if (!theme) throw new Error("theme is required");
 
+        const ask = `Create exactly ${count} short ${language} WhatsApp status lines for theme "${theme}". Style=${style}. One-liners, catchy hooks, no preamble. Return as a numbered list 1..${count}.`;
+        const llm = await generateWithLLM(ask);
+        if (llm) {
+          return { content: [{ type: "text", text: llm.trim() }] };
+        }
+
+        // Fallback
         const emojiSet = style === "emoji-heavy" ? ["🔥", "✨", "💪", "🚀", "🎯", "⚡", "🏆"] : ["•"];
         const hook = (core: string, i: number) => `${emojiSet[i % emojiSet.length]} ${core}`;
-
         const cores: string[] = language === "Hinglish" ? [
           `${theme} mode: ON`,
           `Bas karte jao, baaki sab ho jayega`,

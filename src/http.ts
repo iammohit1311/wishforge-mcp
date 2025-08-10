@@ -10,7 +10,7 @@ async function main() {
     port,
     sseEndpoint: null,
     streamEndpoint: "/mcp",
-    stateless: false,
+    stateless: true,
     onUnhandledRequest: async (req, res) => {
       if (req.method === "GET" && (req.url === "/" || req.url === "/healthz")) {
         res.statusCode = 200;
