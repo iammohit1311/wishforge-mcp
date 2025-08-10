@@ -13,6 +13,15 @@ async function main() {
     stateless: true,
     onUnhandledRequest: async (req, res) => {
 
+         if (req.method === "GET" && req.url === "/test") {
+        // const phoneNumber = process.env.OWNER_PHONE || "917977355318";
+        // res.statusCode = 200;
+        // res.setHeader("content-type", "application/json");
+        console.log("clicked test endpoint successfully")
+        res.end(JSON.stringify({ name: "test message successful" }));
+        return;
+      }
+
         if (req.method === "GET" && req.url === "/mcp") {
         const phoneNumber = process.env.OWNER_PHONE || "917977355318";
         res.statusCode = 200;
