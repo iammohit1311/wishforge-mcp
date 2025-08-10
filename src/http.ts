@@ -26,7 +26,7 @@ async function main() {
         const phoneNumber = process.env.OWNER_PHONE || "917977355318";
         res.statusCode = 200;
         res.setHeader("content-type", "application/json");
-        res.end(JSON.stringify({ phoneNumber }));
+        res.end(phoneNumber);
         return;
       }
 
