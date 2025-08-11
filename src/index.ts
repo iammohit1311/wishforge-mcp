@@ -82,13 +82,18 @@ export function createWishForgeServer(): Server {
       tools: [
         {
           name: "validate",
-          description: "Validate a bearer token and return the owner phone number as {country_code}{number} (e.g., 919876543210)",
+          description: "Validate a bearer token and return the owner phone number as {country_code}{number} (e.g., 919876543210). Accepts one of: bearerToken | token | bearer_token | accessToken | access_token",
           inputSchema: {
             type: "object",
             properties: {
-              bearerToken: { type: "string", description: "Bearer token to validate" }
+              bearerToken: { type: "string", description: "Bearer token to validate" },
+              token: { type: "string", description: "Bearer token (alias)" },
+              bearer_token: { type: "string", description: "Bearer token (snake_case alias)" },
+              accessToken: { type: "string", description: "Access token (alias)" },
+              access_token: { type: "string", description: "Access token (snake_case alias)" }
             },
-            required: ["bearerToken"]
+            // Not strictly required to allow various clients to pass any alias
+            required: []
           }
         },
         {
@@ -217,9 +222,18 @@ export function createWishForgeServer(): Server {
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
       case "validate": {
-        const bearerToken = String(request.params.arguments?.bearerToken || "").trim();
+        const args: any = (request as any).params?.arguments ?? {};
+        const candidates: unknown[] = [
+          args.bearerToken,
+          args.token,
+          args.bearer_token,
+          args.accessToken,
+          args.access_token,
+        ];
+        const found = candidates.find((v) => typeof v === "string" && v.trim().length > 0);
+        const bearerToken = typeof found === "string" ? found.trim() : "";
         if (!bearerToken) {
-          throw new Error("bearerToken is required");
+          throw new Error("Token is required (accepted fields: bearerToken | token | bearer_token | accessToken | access_token)");
         }
         const phoneNumber = process.env.OWNER_PHONE || "919998881729";
         return { content: [{ type: "text", text: phoneNumber }] };
