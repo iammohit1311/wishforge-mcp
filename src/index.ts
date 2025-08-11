@@ -161,6 +161,35 @@ export function createWishForgeServer(): Server {
             },
             required: ["theme"]
           }
+        },
+        {
+          name: "roast_generator",
+          description: "Generate playful, friendly roasts in Hinglish for friends (non-offensive humor)",
+          inputSchema: {
+            type: "object",
+            properties: {
+              target_name: { type: "string", description: "Name of the person to roast", default: "" },
+              roast_style: { type: "string", description: "friendly | witty | savage | bollywood", default: "friendly" },
+              language: { type: "string", description: "Hinglish | Hindi", default: "Hinglish" },
+              count: { type: "number", description: "Number of roasts (2-5)", default: 3 },
+              topic: { type: "string", description: "Optional: specific topic like coding, food, cricket", default: "" }
+            },
+            required: []
+          }
+        },
+        {
+          name: "pickup_lines",
+          description: "Generate cheesy, funny pickup lines with Indian/Bollywood context",
+          inputSchema: {
+            type: "object",
+            properties: {
+              style: { type: "string", description: "cheesy | funny | bollywood | food-based | tech", default: "funny" },
+              language: { type: "string", description: "Hinglish | Hindi", default: "Hinglish" },
+              count: { type: "number", description: "Number of pickup lines (3-7)", default: 5 },
+              occasion: { type: "string", description: "Optional: festival, coffee shop, college", default: "" }
+            },
+            required: []
+          }
         }
       ]
     };
@@ -484,6 +513,113 @@ Return as a numbered list 1..${count}.`;
         const lines: string[] = [];
         for (let i = 0; i < count; i++) lines.push(hook(cores[i % cores.length], i));
         const text = lines.map((l, i) => `${i + 1}. ${l}`).join("\n");
+        return { content: [{ type: "text", text }] };
+      }
+
+      case "roast_generator": {
+        const targetName = String(request.params.arguments?.target_name || "").trim();
+        const roastStyle = String(request.params.arguments?.roast_style || "friendly");
+        const language = String(request.params.arguments?.language || "Hinglish");
+        const count = Math.max(2, Math.min(5, Number(request.params.arguments?.count ?? 3)));
+        const topic = String(request.params.arguments?.topic || "").trim();
+
+        let languageInstruction = "";
+        if (language === "Hinglish") {
+          languageInstruction = "Hinglish (mix Hindi words with English in Roman script like: 'Arre yaar, tu toh wahi hai na jo WiFi password bhool jata hai! 😂')";
+        } else {
+          languageInstruction = language;
+        }
+
+        const nameRef = targetName ? `for ${targetName}` : "for your friend";
+        const topicRef = topic ? ` about ${topic}` : "";
+        const styleNote = roastStyle === "savage" ? "savage but still friendly" : 
+                         roastStyle === "bollywood" ? "using Bollywood references" :
+                         roastStyle === "witty" ? "clever and witty" : "playful and friendly";
+
+        const ask = `Generate exactly ${count} ${styleNote} roasts in ${languageInstruction} ${nameRef}${topicRef}. Make them humorous but non-offensive, perfect for friends to laugh together.
+
+IMPORTANT: If language is Hinglish, you MUST mix Hindi and English words naturally in Roman script. Examples:
+- "Arre ${targetName || "yaar"}, tu toh wahi hai na jo alarm lagake khud late uthta hai! ⏰😴"
+- "Bhai, tera confidence dekh ke lagta hai tu Google se bhi zyada smart hai! 🤓"
+- "Tu toh woh type ka hai jo 'seen' pe reply nahi karta, lekin story zaroor dekhta hai! 👀"
+
+Keep it light-hearted and shareable. Return as a numbered list 1..${count}.`;
+        
+        const llm = await generateWithLLM(ask);
+        if (llm) {
+          return { content: [{ type: "text", text: llm.trim() }] };
+        }
+
+        // Fallback templates
+        const templates = language === "Hinglish" ? [
+          `Arre ${targetName || "yaar"}, tu toh wahi hai na jo WiFi password bhool jata hai! 😂`,
+          `${targetName || "Bro"}, tera confidence dekh ke lagta hai Google se bhi zyada smart hai! 🤓`,
+          `Tu toh woh type ka hai jo 'seen' pe reply nahi karta! 👀`,
+          `${targetName || "Dost"}, tere jokes sunke comedy shows band ho jaane chahiye! 🎭`,
+          `Arre tu toh wahi hai na jo selfie lete waqt 50 photos leta hai! 📸`
+        ] : [
+          `${targetName || "दोस्त"}, तुम तो वही हो ना जो अलार्म लगाकर खुद देर से उठते हो! ⏰`,
+          `तुम्हारा कॉन्फिडेंस देखकर लगता है गूगल से भी ज्यादा स्मार्ट हो! 🤓`,
+          `तुम तो वो टाइप के हो जो 'seen' पे रिप्लाई नहीं करते! 👀`
+        ];
+        
+        const selected = templates.slice(0, count);
+        const text = selected.map((t, i) => `${i + 1}. ${t}`).join("\n");
+        return { content: [{ type: "text", text }] };
+      }
+
+      case "pickup_lines": {
+        const style = String(request.params.arguments?.style || "funny");
+        const language = String(request.params.arguments?.language || "Hinglish");
+        const count = Math.max(3, Math.min(7, Number(request.params.arguments?.count ?? 5)));
+        const occasion = String(request.params.arguments?.occasion || "").trim();
+
+        let languageInstruction = "";
+        if (language === "Hinglish") {
+          languageInstruction = "Hinglish (mix Hindi words with English in Roman script like: 'Kya tum Google ho? Kyunki jo main dhund raha tha, woh tum ho! 💕')";
+        } else {
+          languageInstruction = language;
+        }
+
+        const styleNote = style === "cheesy" ? "extra cheesy and over-the-top" :
+                         style === "bollywood" ? "using Bollywood movies/songs references" :
+                         style === "food-based" ? "using Indian food references" :
+                         style === "tech" ? "using technology references" : "funny and clever";
+
+        const occasionRef = occasion ? ` for ${occasion} context` : "";
+
+        const ask = `Generate exactly ${count} ${styleNote} pickup lines in ${languageInstruction}${occasionRef}. Make them humorous, charming, and culturally relevant to India.
+
+IMPORTANT: If language is Hinglish, you MUST mix Hindi and English words naturally in Roman script. Examples:
+- "Kya tum Google ho? Kyunki jo main dhund raha tha, woh tum ho! 💕"
+- "Tu meri Maggi hai, main tera 2-minute wait! 🍜❤️"
+- "Are you WiFi? Kyunki main tumse connect ho gaya hu! 📶💕"
+- "Kya tum camera ho? Kyunki jab bhi tumhe dekhta hu, smile aa jati hai! 📸😊"
+
+Keep them sweet, funny, and shareable. Return as a numbered list 1..${count}.`;
+        
+        const llm = await generateWithLLM(ask);
+        if (llm) {
+          return { content: [{ type: "text", text: llm.trim() }] };
+        }
+
+        // Fallback templates
+        const templates = language === "Hinglish" ? [
+          "Kya tum Google ho? Kyunki jo main dhund raha tha, woh tum ho! 💕",
+          "Tu meri Maggi hai, main tera 2-minute wait! 🍜❤️",
+          "Are you WiFi? Kyunki main tumse connect ho gaya hu! 📶💕",
+          "Kya tum camera ho? Kyunki jab bhi tumhe dekhta hu, smile aa jati hai! 📸😊",
+          "Tu meri chai hai, tere bina din shuru nahi hota! ☕💕",
+          "Are you my phone? Kyunki main tumhare bina incomplete feel karta hu! 📱❤️",
+          "Kya tum traffic light ho? Kyunki tumhe dekh ke main ruk gaya! 🚦💕"
+        ] : [
+          "क्या तुम गूगल हो? क्योंकि जो मैं ढूंढ रहा था, वो तुम हो! 💕",
+          "तुम मेरी चाय हो, तुम्हारे बिना दिन शुरू नहीं होता! ☕💕",
+          "क्या तुम कैमरा हो? क्योंकि जब भी तुम्हें देखता हूं, स्माइल आ जाती है! 📸😊"
+        ];
+        
+        const selected = templates.slice(0, count);
+        const text = selected.map((t, i) => `${i + 1}. ${t}`).join("\n");
         return { content: [{ type: "text", text }] };
       }
 
