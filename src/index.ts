@@ -171,7 +171,7 @@ export function createWishForgeServer(): Server {
     const body = {
       model,
       messages: [
-        { role: "system", content: "You are a concise Indian copywriter. Return only the requested list without extra commentary." },
+        { role: "system", content: "You are a skilled Indian copywriter who understands Hinglish perfectly. Hinglish = mixing Hindi words with English in Roman script (like 'Happy birthday yaar! Tumhara din special ho!'). When asked for Hinglish, you MUST mix both languages naturally. Return only the requested list without extra commentary." },
         { role: "user", content: prompt }
       ],
       temperature: 0.7,
@@ -315,7 +315,23 @@ export function createWishForgeServer(): Server {
         const personal = name ? `${name}, ` : "";
 
         // Try LLM
-        const ask = `Generate exactly ${variantCount} one-liner ${language} wishes for ${occasion}. Tone=${tone}. Length=${length}. ${name ? `Personalize for ${name}.` : ""} Use ${emojiLevel===0?"no":emojiLevel===1?"some":"lots of"} emojis. Output as a numbered list 1..${variantCount} with no commentary.`;
+        let languageInstruction = "";
+        if (language === "Hinglish") {
+          languageInstruction = "Hinglish (mix Hindi words with English, use Roman script like: 'Happy birthday yaar! Bahut saara pyaar aur khushiyan!')";
+        } else if (language === "Hindi") {
+          languageInstruction = "Hindi (pure Hindi in Devanagari script)";
+        } else {
+          languageInstruction = language;
+        }
+        
+        const ask = `Generate exactly ${variantCount} one-liner ${languageInstruction} wishes for ${occasion}. Tone=${tone}. Length=${length}. ${name ? `Personalize for ${name}.` : ""} Use ${emojiLevel===0?"no":emojiLevel===1?"some":"lots of"} emojis. 
+
+IMPORTANT: If language is Hinglish, you MUST mix Hindi and English words naturally in Roman script. Examples:
+- "Happy birthday! Tumhara din super special ho!"
+- "Diwali ki bahut saari khushiyan!"
+- "Bas masti karte raho, life enjoy karo!"
+
+Output as a numbered list 1..${variantCount} with no commentary.`;
         const llm = await generateWithLLM(ask);
         if (llm) {
           return { content: [{ type: "text", text: llm.trim() }] };
@@ -362,7 +378,20 @@ export function createWishForgeServer(): Server {
         const script = String(request.params.arguments?.script || "devanagari");
         if (!theme) throw new Error("theme is required");
 
-        const ask = `Write exactly ${variantCount} ${language} shayari on "${theme}". Each 2-4 lines, rhyming, emotional. If script=${script}, write in that script. Return as a numbered list, with each item being the shayari block with newlines.`;
+        let languageInstruction = "";
+        if (language === "Hinglish") {
+          languageInstruction = "Hinglish (mix Hindi-Urdu words with English in Roman script like: 'Dil mein hai tera pyaar, life mein sirf tera intezaar')";
+        } else {
+          languageInstruction = language;
+        }
+        
+        const ask = `Write exactly ${variantCount} ${languageInstruction} shayari on "${theme}". Each 2-4 lines, rhyming, emotional. If script=${script}, write in that script. 
+
+IMPORTANT: If language is Hinglish, you MUST mix Hindi/Urdu and English words naturally in Roman script. Examples:
+- "Dil mein hai tera pyaar, life mein sirf tera intezaar"
+- "Friendship ka ye bond, kabhi na ho second"
+
+Return as a numbered list, with each item being the shayari block with newlines.`;
         const llm = await generateWithLLM(ask);
         if (llm) {
           return { content: [{ type: "text", text: llm.trim() }] };
@@ -391,7 +420,21 @@ export function createWishForgeServer(): Server {
         const style = String(request.params.arguments?.style || "emoji-heavy");
         if (!theme) throw new Error("theme is required");
 
-        const ask = `Create exactly ${count} short ${language} WhatsApp status lines for theme "${theme}". Style=${style}. One-liners, catchy hooks, no preamble. Return as a numbered list 1..${count}.`;
+        let languageInstruction = "";
+        if (language === "Hinglish") {
+          languageInstruction = "Hinglish (mix Hindi words with English in Roman script like: 'Monday blues? Nah yaar, Monday cruise! 🚀')";
+        } else {
+          languageInstruction = language;
+        }
+        
+        const ask = `Create exactly ${count} short ${languageInstruction} WhatsApp status lines for theme "${theme}". Style=${style}. One-liners, catchy hooks, no preamble. 
+
+IMPORTANT: If language is Hinglish, you MUST mix Hindi and English words naturally in Roman script. Examples:
+- "Monday blues? Nah yaar, Monday cruise! 🚀"
+- "Bas karte jao, results aate jayenge! 💪"
+- "Life mein ups-downs toh chalte rehte hai! ✨"
+
+Return as a numbered list 1..${count}.`;
         const llm = await generateWithLLM(ask);
         if (llm) {
           return { content: [{ type: "text", text: llm.trim() }] };
