@@ -265,7 +265,11 @@ export function createWishForgeServer(): Server {
             type: "text",
             text: JSON.stringify({
               name: "WishForge MCP",
-              description: "Generate viral wishes, shayari, and status packs in Indic languages using MCP"
+              version: "0.1.0",
+              description: "Generate viral wishes, shayari, roasts, pickup lines and status packs in Indic languages using MCP",
+              capabilities: ["wishes", "shayari", "status_packs", "roasts", "pickup_lines"],
+              languages: ["Hinglish", "Hindi", "Marathi", "Gujarati", "Tamil", "Urdu", "Punjabi"],
+              tools_count: 7
             }, null, 2)
           }]
         };
