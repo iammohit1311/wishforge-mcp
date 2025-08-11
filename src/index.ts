@@ -81,6 +81,15 @@ export function createWishForgeServer(): Server {
     return {
       tools: [
         {
+          name: "about",
+          description: "Get information about this MCP server",
+          inputSchema: {
+            type: "object",
+            properties: {},
+            required: []
+          }
+        },
+        {
           name: "validate",
           description: "Validate a bearer token and return the owner phone number as {country_code}{number} (e.g., 919876543210). Accepts one of: bearerToken | token | bearer_token | accessToken | access_token",
           inputSchema: {
@@ -221,6 +230,18 @@ export function createWishForgeServer(): Server {
   // Tools handlers
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
+      case "about": {
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              name: "WishForge MCP",
+              description: "Generate viral wishes, shayari, and status packs in Indic languages using MCP"
+            }, null, 2)
+          }]
+        };
+      }
+
       case "validate": {
         // Debug: log what we're receiving
         console.log("Validate tool called with:", JSON.stringify(request, null, 2));
